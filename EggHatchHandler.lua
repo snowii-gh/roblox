@@ -1,24 +1,32 @@
+-- // Services
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- // Modules
 local modules = ServerScriptService:WaitForChild("Modules")
 local popUpHandler = require(modules:WaitForChild("PopUpHandler"))
 local mutationColourer = require(modules:WaitForChild("MutationColourer"))
 
+-- ALL MODULES WERE MADE BY ME (no free models/libraries) --
+
+-- // Specific modules
 local eggsHandler = script.Parent
 local eggInfo = require(eggsHandler:WaitForChild("EggInfo"))
 local duckInfo = require(eggsHandler:WaitForChild("DuckInfo"))
 local mutationsInfo = require(eggsHandler:WaitForChild("MutationsInfo"))
 
+-- // Global modules
 local sharedModules = ReplicatedStorage:WaitForChild("Modules")
 local modelToTool = require(sharedModules:WaitForChild("ModelToTool"))
 
+-- // Networking
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local events = remotes:WaitForChild("Events")
 local PlaceEggEvent = events:WaitForChild("PlaceEgg")
 local PlaySoundEvent = events:WaitForChild("PlaySound")
 local PlayVFXEvent = events:WaitForChild("PlayVFX")
 
+-- // Folders (for models)
 local eggModels = ReplicatedStorage:WaitForChild("Eggs")
 local duckModels = ReplicatedStorage:WaitForChild("Ducks")
 
@@ -44,6 +52,7 @@ local function updateMPSLabel(player: Player, amount: number)
 	totalMPSLabel.Text = `MPS: ${MPS.Value}/s`
 end
 
+-- // Main loop for generating money, collecting, etc
 function eggHatchHandler.mainLoop(player: Player, duck)
 	local currentDuckInfo = duckInfo[duck.Name]
 	local moneyPerSecond = currentDuckInfo.Money
@@ -105,9 +114,11 @@ function eggHatchHandler.mainLoop(player: Player, duck)
 		task.wait(1)
 	end
 
+	-- Disconnects the touched connection to avoid any potential performance issues after deleting/moving a duck
 	hitboxConnection:Disconnect()
 end
 
+-- Function to format time into a more legible state (i.e. 10:23:42)
 local function formatTime(totalSeconds)
 	local hours = math.floor(totalSeconds / 3600)
 	local minutes = math.floor((totalSeconds % 3600) / 60)
@@ -116,6 +127,7 @@ local function formatTime(totalSeconds)
 	return string.format("%02d:%02d:%02d", hours, minutes, seconds)
 end
 
+-- Function to randomly choose which duck to hatch and spawn/position it properly, as well as to initiate the main loop
 function eggHatchHandler.hatch(eggModel, hatchTime)
 	local infoGui = eggModel:WaitForChild("InfoGui")
 	
@@ -199,6 +211,7 @@ function eggHatchHandler.unlockSpot(player: Player, mainSpot: Model, loadingData
 	local triggeredPrompt = placementPart:FindFirstChildOfClass("ProximityPrompt")
 
 	if money.Value >= spotPrice or loadingData then
+		-- If player data is being loaded, then don't actually purchase the spot, just unlock it (since they would already own it)
 		if not loadingData then
 			money.Value -= spotPrice
 		end
@@ -251,6 +264,7 @@ function eggHatchHandler.unlockSpot(player: Player, mainSpot: Model, loadingData
 	end
 end
 
+-- Allows player to place items such as eggs on a spot
 PlaceEggEvent.OnServerEvent:Connect(function(player, triggeredPrompt)
 	local character = player.Character
 	local currentTool = character:FindFirstChildOfClass("Tool")
@@ -311,13 +325,11 @@ PlaceEggEvent.OnServerEvent:Connect(function(player, triggeredPrompt)
 
 	if not mainSpot:GetAttribute("Unlocked") then
 		eggHatchHandler.unlockSpot(player, mainSpot, false)
-
 		return
 	end
 
 	if triggeredPrompt:FindFirstAncestor(tostring(player.UserId)) and currentTool then
 		local mutation = currentTool:GetAttribute("Mutation")
-		print(mutation)
 
 		local toolModel
 
@@ -337,6 +349,7 @@ PlaceEggEvent.OnServerEvent:Connect(function(player, triggeredPrompt)
 				toolModel:SetAttribute("Mutation", mutation)
 				mutationColourer.colour(toolModel, mutation)
 
+				-- Position the model with a slight offset to ensure it sits flush on the spot
 				toolModel:PivotTo(CFrame.new(placementPart.Position + Vector3.new(0, 1, 0)) * CFrame.Angles(0, math.rad(placementPart.Orientation.Y), 0))
 				toolModel.Parent = mainSpot
 
